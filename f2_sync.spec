@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['testicon.py'],
+    ['f2_sync.py'],
     pathex=[],
     binaries=[],
     datas=[('F2.ico', '.')],
@@ -26,7 +26,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='testicon',
+    name='f2_sync',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -47,5 +47,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='testicon',
+    name='f2_sync',
 )

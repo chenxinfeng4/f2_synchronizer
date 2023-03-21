@@ -7,7 +7,7 @@ import socket
 import pythoncom
 import win32com
 import win32com.client
-
+import time
 
 pythoncom.CoInitialize()
 def log_slave(*args, **kargs):
@@ -32,6 +32,7 @@ class Slave(ABC):
 
     def switch(self, switch:bool):
         mode = (self.ready, switch)
+        log_slave('USV mode', self.__class__, mode)
         if mode == (True, True):
             self.start()
         elif mode == (True, False):
@@ -145,6 +146,7 @@ class Slave_USV(Slave):
 
     def start(self):
         self.shell.SendKeys('%')
+        log_slave('USV_Start', self.cl)
         win32gui.ShowWindow(self.cl, win32con.SW_SHOWNORMAL)
         win32gui.SetForegroundWindow(self.cl)
 
@@ -162,3 +164,13 @@ class Slave_USV(Slave):
         win32api.keybd_event(win32con.VK_F5,0,0,0)     # F5
         win32api.keybd_event(win32con.VK_F5,0,win32con.KEYEVENTF_KEYUP,0)  #释放按键
         win32api.keybd_event(win32con.VK_CONTROL,0,win32con.KEYEVENTF_KEYUP,0) 
+
+        self.shell.SendKeys('%')
+        win32gui.ShowWindow(self.cl, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(self.cl)
+
+        win32api.keybd_event(win32con.VK_CONTROL,0,0,0)
+        win32api.keybd_event(win32con.VK_F5,0,0,0)     # F5
+        win32api.keybd_event(win32con.VK_F5,0,win32con.KEYEVENTF_KEYUP,0)  #释放按键
+        win32api.keybd_event(win32con.VK_CONTROL,0,win32con.KEYEVENTF_KEYUP,0) 
+        log_slave('USV Stopped', self.cl)

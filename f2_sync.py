@@ -1,5 +1,6 @@
 # conda activate py310
 #!pyinstaller.exe --noconsole .\f2_sync.py -i .\F2.ico --add-data "F2.ico;." --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
+# python f2_sync.py
 import pystray
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image
@@ -10,14 +11,13 @@ import socketserver
 import threading
 from f2_slaves import Slave, Slave_OBS, Slave_Miniscope, Slave_USV
 
-
 is_recording = True
 
 singleton_port = 20170
 socket_server_port = 20169
 app_enable=1
 countdown_timer_enable=1
-countdown_timer_seconds=30 #15*60+1
+countdown_timer_seconds=10 #15*60+1
 slave_all = [Slave_OBS(), Slave_Miniscope(), Slave_USV()]
 
 def log_socket(*args, **kargs):
@@ -47,11 +47,13 @@ class SingletonManager:
             cls.instance = super(SingletonManager, cls).__new__(cls)
             cls.instance._init()
         return cls.instance
-    
+
     def _init(self):
         # 1. create socket server
-        s_server = socketserver.TCPServer(('localhost', socket_server_port), MyTCPHandler)
+        # s_server = socketserver.TCPServer(('0.0.0.0', socket_server_port), MyTCPHandler)
+        s_server = ThreadedTCPServer(('0.0.0.0', socket_server_port), MyTCPHandler)
         self.s_serer_p = threading.Thread(target=s_server.serve_forever)
+        self.s_serer_p.daemon = True
         self.s_serer_p.start()
 
         # 2. binding hotkey
@@ -89,7 +91,6 @@ class SingletonManager:
         
         # 4. Countdown timer
         self.countdown_timer = threading.Timer(countdown_timer_seconds, self.switch_record_world, args=(False, False))
-        # self.switch_countdown_timer=self.switch_countdown_timer_warp(interval=countdown_timer_seconds)
 
     def switch_record_world(self, switch, 
                         enablecountdowntimer=True):
@@ -98,8 +99,10 @@ class SingletonManager:
             log_switch('switch_record_world', switch)
             self.do_countdown(switch=switch)
 
-        for obj in world:
-            obj.switch(switch=switch)
+        log_manager('Switch', switch)
+        threads = [threading.Thread(target=obj.switch, args=(switch,)) for obj in world]
+        _ = [t.start() for t in threads]
+        _ = [t.join() for t in threads]
 
     def do_countdown(self, switch):
         countdown_timer_alive = self.countdown_timer.is_alive()
@@ -114,6 +117,7 @@ class SingletonManager:
             self.countdown_timer.cancel()
             log_timer('Stop')
             self.countdown_timer = threading.Timer(countdown_timer_seconds, self.switch_record_world, args=(False, False))
+            # self.countdown_timer = threading.Timer(countdown_timer_seconds, self.s_client_cmd)
         elif switch==True and countdown_timer_alive==True:
             log_timer('Already started. Ignore.')
         elif switch==False and countdown_timer_alive==True:
@@ -177,12 +181,10 @@ class SingletonManager:
             stop_checking_hotkeys()
             log_manager('Stop hot keys')
 
-
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    pass
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
-    def __init__(self, *args, **kargs):
-        super().__init__(*args, **kargs)
-
     def handle(self):
         # self.request is the TCP socket connected to the client
         log_socket("conn is :",self.request) # conn
