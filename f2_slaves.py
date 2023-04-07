@@ -7,7 +7,6 @@ import socket
 import pythoncom
 import win32com
 import win32com.client
-import time
 
 pythoncom.CoInitialize()
 def log_slave(*args, **kargs):
@@ -31,20 +30,20 @@ class Slave(ABC):
         pass
 
     def switch(self, switch:bool):
-        mode = (self.ready, switch)
+        mode = (self.check_ready(), switch)
         log_slave('USV mode', self.__class__, mode)
         if mode == (True, True):
             self.start()
+            self.release()
         elif mode == (True, False):
             self.stop()
             self.release()
-            self.check_ready()
         elif mode == (False, True):
             log_slave("Slave not openned")
         elif mode == (False, False):
             self.release()
-            self.check_ready()
         else:
+            print('mode', mode)
             raise OSError("Unknown mode")
 
     def release(self):
@@ -106,6 +105,7 @@ class Slave_Miniscope(Slave):
             tcp_socket = None
         self.cl = tcp_socket
         self.ready = tcp_socket is None
+        return self.ready
 
     def start(self):
         send_data_byte = "start_record".encode("utf-8")
@@ -143,10 +143,20 @@ class Slave_USV(Slave):
             self.cl = hwnd
             log_slave('Found USV.')
         self.ready = self.cl is not None
+        return self.ready
 
     def start(self):
         self.shell.SendKeys('%')
         log_slave('USV_Start', self.cl)
+        win32gui.ShowWindow(self.cl, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(self.cl)
+
+        win32api.keybd_event(win32con.VK_CONTROL,0,0,0)
+        win32api.keybd_event(win32con.VK_F3,0,0,0)     # F3
+        win32api.keybd_event(win32con.VK_F3,0,win32con.KEYEVENTF_KEYUP,0)  #释放按键
+        win32api.keybd_event(win32con.VK_CONTROL,0,win32con.KEYEVENTF_KEYUP,0) 
+
+        self.shell.SendKeys('%')
         win32gui.ShowWindow(self.cl, win32con.SW_SHOWNORMAL)
         win32gui.SetForegroundWindow(self.cl)
 

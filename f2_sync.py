@@ -1,6 +1,6 @@
 # conda activate py310
 #!pyinstaller.exe --noconsole .\f2_sync.py -i .\F2.ico --add-data "F2.ico;." --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
-# python f2_sync.py
+# python D:\f2_sync_project\f2_sync.py
 import pystray
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image
@@ -9,6 +9,7 @@ import sys
 from global_hotkeys import register_hotkeys, start_checking_hotkeys, stop_checking_hotkeys
 import socketserver
 import threading
+import win32ui
 from f2_slaves import Slave, Slave_OBS, Slave_Miniscope, Slave_USV
 
 is_recording = True
@@ -17,7 +18,7 @@ singleton_port = 20170
 socket_server_port = 20169
 app_enable=1
 countdown_timer_enable=1
-countdown_timer_seconds=10 #15*60+1
+countdown_timer_seconds=15*60+1 #15*60+1
 slave_all = [Slave_OBS(), Slave_Miniscope(), Slave_USV()]
 
 def log_socket(*args, **kargs):
@@ -38,6 +39,7 @@ def acquire_singleton(port):
         # s.server_close()
         return True, s
     except:
+        win32ui.MessageBox("[F2 同步助手] 未退出", "错误", 0)
         return False, None
     
 
@@ -229,5 +231,4 @@ if __name__=='__main__':
         print('In singleton program mode')
         os._exit(1)
 
-    SingletonManager().switch_record_world(False, False)
     SingletonManager().serve_forever()
