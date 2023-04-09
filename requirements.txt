@@ -1,0 +1,8 @@
+obsws-python>=1.4.2
+pywin32>=223
+pywin32-ctypes>=0.2.0
+pywinpty>=0.5.5
+PyInstaller>=3.5
+pystray>=0.19.4
+global-hotkeys>=0.0.4
+Pillow>=5.4.1

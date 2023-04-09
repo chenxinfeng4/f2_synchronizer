@@ -58,8 +58,15 @@ class Slave_OBS(Slave):
         self.cl = None
 
     def check_ready(self) -> bool:
+        tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tcp_socket.settimeout(0.1)
+        if tcp_socket.connect_ex((self.ip, self.port)) == 0: # connection successful
+            tcp_socket.close()
+        else:
+            self.cl, self.ready = None, False
+            return self.ready
+        
         try:
-            self.release()
             cl = obs.ReqClient(host=self.ip, port=self.port)
             log_slave('Found OBS studio.')
         except Exception:
@@ -96,15 +103,15 @@ class Slave_Miniscope(Slave):
         self.port = port
 
     def check_ready(self) -> bool:
-        try:
-            self.release()
-            tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcp_socket.connect((self.ip, self.port))
+        self.release()
+        tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tcp_socket.settimeout(0.1)
+        if tcp_socket.connect_ex((self.ip, self.port)) == 0: # connection successful
             log_slave('Found Slave_Miniscope.')
-        except Exception:
+        else:
             tcp_socket = None
         self.cl = tcp_socket
-        self.ready = tcp_socket is None
+        self.ready = tcp_socket is not None
         return self.ready
 
     def start(self):
