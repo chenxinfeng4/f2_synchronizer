@@ -13,21 +13,35 @@ default_config = {
     "启用倒计时": True
 }
 
-filename = osp.join(osp.dirname(__file__), '.f2_optionconfigs.json')
+filenames = [osp.join(osp.dirname(__file__), '.f2_config'), #high priority first
+            osp.join(osp.expanduser("~"), '.f2_config')]   #low priority last
 
+filereal = None
 
 def load_config():
-    if osp.exists(filename):
-        with codecs.open(filename, 'r', encoding='utf-8') as f:
+    global filereal
+    if filereal is None:
+        for filename in filenames:
+            if osp.exists(filename):
+                filereal = filename
+                break
+        else:
+            filereal = filenames[-1]
+
+    if osp.exists(filereal):
+        with codecs.open(filereal, 'r', encoding='utf-8') as f:
             config = json.load(f)
     else:
         config = default_config
-        with codecs.open(filename, 'w', encoding='utf-8') as f: 	# write defaults to file to restore on next run
+        with codecs.open(filereal, 'w', encoding='utf-8') as f: 	# write defaults to file to restore on next run
             json.dump(default_config, f, indent=2, ensure_ascii=False) 	# save defaults to file
 
     return config
 
 
 def save_config(config):
-    with codecs.open(filename, 'w', encoding='utf-8') as f:
+    if filereal is None:
+        load_config()
+
+    with codecs.open(filereal, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
