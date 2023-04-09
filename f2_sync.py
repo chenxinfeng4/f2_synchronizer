@@ -10,7 +10,8 @@ from global_hotkeys import register_hotkeys, start_checking_hotkeys, stop_checki
 import socketserver
 import threading
 import win32ui
-from f2_slaves import Slave, Slave_OBS, Slave_Miniscope, Slave_USV
+from f2_slaves import Slave_OBS, Slave_Miniscope, Slave_USV
+from f2_optionconfigs import load_config, save_config
 import time
 
 is_recording = True
@@ -18,7 +19,7 @@ is_recording = True
 singleton_port = 20170
 socket_server_port = 20169
 app_enable=1
-countdown_timer_enable=1
+
 countdown_timer_seconds=1*60+1 #15*60+1
 
 slave_dict = {'OBS 录像': [True, Slave_OBS()],
@@ -83,6 +84,11 @@ class SingletonManager:
         return cls.instance
 
     def _init(self):
+        # 0. load config
+        config_dict = load_config()
+        for k, v in config_dict['选择同步设备'].items():
+            slave_dict[k][0] = v
+
         # 1. create socket server
         # s_server = socketserver.TCPServer(('0.0.0.0', socket_server_port), MyTCPHandler)
         s_server = ThreadedTCPServer(('0.0.0.0', socket_server_port), MyTCPHandler)
@@ -100,10 +106,10 @@ class SingletonManager:
         print("Ready. \n1. [Ctrl+F2] to start. \n2. [Ctrl+F4] to stop.")
 
         # 3. rigister icon.
-        self.app_hotkey_enable = True
-        self.app_socket_enable = True
-        # devices_items = [item(k, self.on_device_enable, checked=lambda item: v[0]) for (k,v) in slave_dict.items()]
-        devices_items = [MyMenuItem(k, self.on_device_enable, checked=True) for (k,v) in slave_dict.items()]
+        self.countdown_timer_enable = config_dict['启用倒计时']
+        self.app_hotkey_enable = config_dict['启用socket server控制']
+        self.app_socket_enable = config_dict['启用快捷键控制']
+        devices_items = [MyMenuItem(k, self.on_device_enable, checked=v[0]) for (k,v) in slave_dict.items()]
         self.icon = pystray.Icon(
             'test name',
             icon=self.create_image(),
@@ -118,15 +124,24 @@ class SingletonManager:
                     self.on_clicked_socket,
                     checked=lambda item: self.app_socket_enable
                 ),
-                item('使用倒计时',
+                item('启用倒计时',
                     self.on_clicked_countdown_timer,
-                    checked=lambda item: countdown_timer_enable
+                    checked=lambda item: self.countdown_timer_enable
                 ),
                 item('退出', self.on_exit),
                 ))
         
         # 4. Countdown timer
         self.new_countdown_timer()
+
+    def on_save_config(self):
+        config_dict = {
+            "选择同步设备":{k:v[0] for (k,v) in slave_dict.items()},
+            '启用倒计时': self.countdown_timer_enable,
+            '启用socket server控制': self.app_socket_enable,
+            '启用快捷键控制': self.app_hotkey_enable,
+        }
+        save_config(config_dict)
 
     def switch_record_world(self, switch, 
                         enablecountdowntimer=True):
@@ -157,7 +172,7 @@ class SingletonManager:
 
     def do_countdown(self, switch):
         countdown_timer_alive = self.countdown_timer.is_alive()
-        if switch==True and countdown_timer_alive==False and countdown_timer_enable:
+        if switch==True and countdown_timer_alive==False and self.countdown_timer_enable:
             used = getattr(self.countdown_timer, 'used', False)
             if used:
                 self.new_countdown_timer()
@@ -179,7 +194,7 @@ class SingletonManager:
         self.icon.run()
 
     def status(self):
-        if countdown_timer_enable:
+        if self.countdown_timer_enable:
             return 'countdown timer enabled'
         else:
             return 'countdown timer disabled'
@@ -212,11 +227,11 @@ class SingletonManager:
         log_manager("Socket enabled: {}".format(self.app_socket_enable))
 
     def on_clicked_countdown_timer(self, icon, item):
-        global countdown_timer_enable
-        countdown_timer_enable = not item.checked
+        self.countdown_timer_enable = not item.checked
 
     def on_exit(self, icon, item):
         icon.stop()
+        self.on_save_config()
         os._exit(1)
 
     def on_notify(self, msgbody:str, msgtitle:str):
