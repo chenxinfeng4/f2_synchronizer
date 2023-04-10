@@ -10,7 +10,8 @@ default_config = {
     },
     "启用快捷键控制": True,
     "启用socket server控制": True,
-    "启用倒计时": True
+    "启用倒计时": True,
+    "倒计时秒数": 15*60+1
 }
 
 filenames = [osp.join(osp.dirname(__file__), '.f2_config'), #high priority first
@@ -30,7 +31,10 @@ def load_config():
 
     if osp.exists(filereal):
         with codecs.open(filereal, 'r', encoding='utf-8') as f:
-            config = json.load(f)
+            config_tmp = json.load(f)
+            config = default_config.copy()
+            config.update(config_tmp)  # update with config file values, but keep default values for keys not in config file.  (This
+    
     else:
         config = default_config
         with codecs.open(filereal, 'w', encoding='utf-8') as f: 	# write defaults to file to restore on next run

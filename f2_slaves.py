@@ -7,10 +7,11 @@ import socket
 import pythoncom
 import win32com
 import win32com.client
+from f2_logging import logprint
 
 pythoncom.CoInitialize()
 def log_slave(*args, **kargs):
-    print("[Slave]", *args, **kargs)
+    logprint("[Slave] " + ' '.join(str(a) for a in args))
 
 
 class Slave(ABC):
@@ -31,15 +32,16 @@ class Slave(ABC):
 
     def switch(self, switch:bool):
         mode = (self.check_ready(), switch)
-        log_slave('USV mode', self.__class__, mode)
         if mode == (True, True):
+            log_slave(self.__class__, "found and start")
             self.start()
             self.release()
         elif mode == (True, False):
+            log_slave(self.__class__, "found and stop")
             self.stop()
             self.release()
         elif mode == (False, True):
-            log_slave("Slave not openned")
+            log_slave(self.__class__, "not openned")
         elif mode == (False, False):
             self.release()
         else:
@@ -68,7 +70,6 @@ class Slave_OBS(Slave):
         
         try:
             cl = obs.ReqClient(host=self.ip, port=self.port)
-            log_slave('Found OBS studio.')
         except Exception:
             cl = None
         self.cl = cl

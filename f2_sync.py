@@ -13,6 +13,9 @@ import win32ui
 from f2_slaves import Slave_OBS, Slave_Miniscope, Slave_USV
 from f2_optionconfigs import load_config, save_config
 import time
+from f2_logging import logprint
+import tkinter as tk
+import easygui
 
 is_recording = True
 
@@ -20,7 +23,7 @@ singleton_port = 20170
 socket_server_port = 20169
 app_enable=1
 
-countdown_timer_seconds=1*60+1 #15*60+1
+countdown_timer_seconds=15*60+1 #15*60+1
 
 slave_dict = {'OBS 录像': [True, Slave_OBS()],
               'USV 超声': [True, Slave_USV()],
@@ -55,16 +58,16 @@ def toc(verbose=True):
     return elapsed
 
 def log_socket(*args, **kargs):
-    print("[Socket]", *args, **kargs)
+    logprint("[Socket] " + ' '.join(str(a) for a in args))
 
 def log_switch(*args, **kargs):
-    print("[Switch]", *args, **kargs)
+    logprint("[Switch] " + ' '.join(str(a) for a in args))
 
 def log_timer(*args, **kargs):
-    print("[Timer]", *args, **kargs)
+    logprint("[Timer] " + ' '.join(str(a) for a in args))
 
 def log_manager(*args, **kargs):
-    print("[Manager]", *args, **kargs)
+    logprint("[Manager] " + ' '.join(str(a) for a in args))
 
 def acquire_singleton(port):
     try:
@@ -88,6 +91,12 @@ class SingletonManager:
         config_dict = load_config()
         for k, v in config_dict['选择同步设备'].items():
             slave_dict[k][0] = v
+        self.countdown_timer_enable = config_dict['启用倒计时']
+        self.app_hotkey_enable = config_dict['启用socket server控制']
+        self.app_socket_enable = config_dict['启用快捷键控制']
+        global countdown_timer_seconds
+        countdown_timer_seconds = config_dict['倒计时秒数']  # 单位是秒
+
 
         # 1. create socket server
         # s_server = socketserver.TCPServer(('0.0.0.0', socket_server_port), MyTCPHandler)
@@ -102,14 +111,15 @@ class SingletonManager:
             [["control","f4"], lambda: self.switch_record_world(False), None],
         ]
         register_hotkeys(bindings)
-        self.enable_hotkeys(True)
+        self.enable_hotkeys(self.app_hotkey_enable)
         print("Ready. \n1. [Ctrl+F2] to start. \n2. [Ctrl+F4] to stop.")
 
         # 3. rigister icon.
-        self.countdown_timer_enable = config_dict['启用倒计时']
-        self.app_hotkey_enable = config_dict['启用socket server控制']
-        self.app_socket_enable = config_dict['启用快捷键控制']
         devices_items = [MyMenuItem(k, self.on_device_enable, checked=v[0]) for (k,v) in slave_dict.items()]
+        item_timeset = item('设置倒计时[{}min]'.format(int(countdown_timer_seconds/60)),
+                     self.on_clicked_countdown_set
+                )
+        item_timeset._enabled = lambda item: self.countdown_timer_enable
         self.icon = pystray.Icon(
             'test name',
             icon=self.create_image(),
@@ -128,11 +138,9 @@ class SingletonManager:
                     self.on_clicked_countdown_timer,
                     checked=lambda item: self.countdown_timer_enable
                 ),
+                item_timeset,
                 item('退出', self.on_exit),
                 ))
-        
-        # 4. Countdown timer
-        self.new_countdown_timer()
 
     def on_save_config(self):
         config_dict = {
@@ -140,6 +148,7 @@ class SingletonManager:
             '启用倒计时': self.countdown_timer_enable,
             '启用socket server控制': self.app_socket_enable,
             '启用快捷键控制': self.app_hotkey_enable,
+            '倒计时秒数': countdown_timer_seconds
         }
         save_config(config_dict)
 
@@ -166,11 +175,14 @@ class SingletonManager:
         self.countdown_timer = threading.Timer(countdown_timer_seconds, self.do_countdown_callback)
 
     def do_countdown_callback(self):
-        log_timer('Stopping')
-        toc()
+        tspend = toc(False)
+        log_timer(f'Auto stop {tspend//3600:02.0f}:{tspend//60:02.0f}:{tspend%60:06.3f}')
         self.switch_record_world(False, False)
 
     def do_countdown(self, switch):
+        if not hasattr(self, "countdown_timer"):
+            self.new_countdown_timer()  # first time only. 创建timer 或 实例化一个timer 
+
         countdown_timer_alive = self.countdown_timer.is_alive()
         if switch==True and countdown_timer_alive==False and self.countdown_timer_enable:
             used = getattr(self.countdown_timer, 'used', False)
@@ -182,8 +194,8 @@ class SingletonManager:
             tic()
         elif switch==False and countdown_timer_alive==True:
             self.countdown_timer.cancel()
-            log_timer('Manual stop')
-            toc()
+            tspend = toc(False)
+            log_timer(f'Manual stop {tspend//3600:02.0f}:{tspend//60:02.0f}:{tspend%60:06.3f}')
             self.new_countdown_timer()
         elif switch==True and countdown_timer_alive==True:
             log_timer('Already started. Ignore.')
@@ -228,6 +240,16 @@ class SingletonManager:
 
     def on_clicked_countdown_timer(self, icon, item):
         self.countdown_timer_enable = not item.checked
+
+    def on_clicked_countdown_set(self, icon:pystray.Icon, item:item):
+        user_input = easygui.enterbox('请输入倒计时时长(min):', '输入', str(15))
+        global countdown_timer_seconds
+        if user_input:
+            countdown_timer_seconds = float(user_input)*60 + 1
+            log_manager("Set the timer to {} seconds".format(countdown_timer_seconds))
+            item._text = lambda x:'设置倒计时[{}min]'.format(int(countdown_timer_seconds/60))
+            item._enabled = lambda x: self.countdown_timer_enable
+            icon.update_menu()
 
     def on_exit(self, icon, item):
         icon.stop()
