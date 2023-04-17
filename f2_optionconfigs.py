@@ -6,7 +6,8 @@ default_config = {
     "选择同步设备":{
         "OBS 录像": True,
         "USV 超声": True,
-        "小显微镜": True
+        "小显微镜": True,
+        "ArControl": True
     },
     "启用快捷键控制": True,
     "启用socket server控制": True,

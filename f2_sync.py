@@ -27,7 +27,8 @@ countdown_timer_seconds=15*60+1 #15*60+1
 
 slave_dict = {'OBS 录像': [True, Slave_OBS()],
               'USV 超声': [True, Slave_USV()],
-              '小显微镜': [True, Slave_Miniscope()]}
+              '小显微镜': [True, Slave_Miniscope()],
+              'ArControl': [True, Slave_Miniscope(port=20171)]}
 
 class MyMenuItem(item):
     def __init__(self, title, callback, checked:bool=False):
