@@ -1,5 +1,5 @@
 # conda activate py310
-#!pyinstaller.exe --noconsole .\f2_sync.py -i .\F2.ico --add-data "F2.ico;." --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
+#!pyinstaller.exe --noconsole .\f2_sync.py -i .\F2.ico --add-data "F2.ico;F2_record.con;." --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
 # python D:\f2_sync_project\f2_sync.py
 import pystray
 from pystray import Menu as menu, MenuItem as item
@@ -14,8 +14,8 @@ from f2_slaves import Slave_OBS, Slave_Miniscope, Slave_USV
 from f2_optionconfigs import load_config, save_config
 import time
 from f2_logging import logprint
-import tkinter as tk
-import easygui
+from PyQt5.QtWidgets import QApplication, QInputDialog
+
 
 is_recording = True
 
@@ -34,6 +34,21 @@ class MyMenuItem(item):
     def __init__(self, title, callback, checked:bool=False):
         self.checked_ = checked
         super().__init__(title, callback, checked=lambda x:self.checked_)
+
+
+class InputDialogThread(threading.Thread):
+    def run(self):
+        # self.result = easygui.enterbox('请输入倒计时时长(min):','输入', str(15))
+        app = QApplication([])
+        prompt = "请输入倒计时时长(min):"
+        default_text = str(15)
+
+        # 创建一个带有文本输入框的对话框
+        text, ok = QInputDialog.getText(None, "输入", prompt, text=default_text)
+
+        # 如果用户按下了"确定"，返回用户输入的文本，否则返回空字符串
+        self.result = text if ok else None
+
 
 def tic():
     """
@@ -243,7 +258,11 @@ class SingletonManager:
         self.countdown_timer_enable = not item.checked
 
     def on_clicked_countdown_set(self, icon:pystray.Icon, item:item):
-        user_input = easygui.enterbox('请输入倒计时时长(min):', '输入', str(15))
+        my_thread = InputDialogThread()
+        my_thread.start()
+        my_thread.join()
+        user_input = my_thread.result
+        # user_input = easygui.enterbox('请输入倒计时时长(min):', '输入', str(15))
         global countdown_timer_seconds
         if user_input:
             countdown_timer_seconds = float(user_input)*60 + 1
