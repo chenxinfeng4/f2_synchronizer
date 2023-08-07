@@ -1,5 +1,5 @@
 # conda activate py310
-# pyinstaller.exe --noconsole .\f2_sync.py -i .\F2.ico  --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
+# pyinstaller.exe -y --noconsole .\f2_sync.py -i .\F2.ico --add-data "./*.ico;." --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
 # python D:\f2_sync_project\f2_sync.py
 import pystray
 from pystray import Menu as menu, MenuItem as item
@@ -155,9 +155,9 @@ class SingletonManager:
                     self.on_clicked_countdown_timer,
                     checked=lambda item: self.countdown_timer_enable
                 ),
-                item('开始记录', lambda *args: self.switch_record_world(True)),
-                item('停止记录', lambda *args: self.switch_record_world(False)),
                 item_timeset,
+                item('开始记录 (Ctrl+F2)', lambda *args: self.switch_record_world(True)),
+                item('停止记录 (Ctrl+F4)', lambda *args: self.switch_record_world(False)),
                 item('退出', self.on_exit),
                 ))
 

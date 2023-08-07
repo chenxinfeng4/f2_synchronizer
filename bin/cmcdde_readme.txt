@@ -1,0 +1,1 @@
+https://www.avisoft.com/Help/RECORDER/dde_command_interface.htm
