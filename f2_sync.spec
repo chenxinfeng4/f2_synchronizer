@@ -8,7 +8,7 @@ a = Analysis(
     ['f2_sync.py'],
     pathex=[],
     binaries=[],
-    datas=[('F2.ico', '.')],
+    datas=[],
     hiddenimports=['win32api', 'pythonwin', 'win32com', 'win32comext', 'isapi'],
     hookspath=[],
     hooksconfig={},

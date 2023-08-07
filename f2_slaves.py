@@ -8,6 +8,7 @@ import pythoncom
 import win32com
 import win32com.client
 from f2_logging import logprint
+import os
 
 pythoncom.CoInitialize()
 def log_slave(*args, **kargs):
@@ -57,7 +58,7 @@ class Slave_OBS(Slave):
         super().__init__()
         self.ip = ip
         self.port = port
-        self.cl = None
+        self.hwnd = None
 
     def check_ready(self) -> bool:
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -65,41 +66,41 @@ class Slave_OBS(Slave):
         if tcp_socket.connect_ex((self.ip, self.port)) == 0: # connection successful
             tcp_socket.close()
         else:
-            self.cl, self.ready = None, False
+            self.hwnd, self.ready = None, False
             return self.ready
         
         try:
             cl = obs.ReqClient(host=self.ip, port=self.port)
         except Exception:
             cl = None
-        self.cl = cl
+        self.hwnd = cl
         self.ready = cl is not None
         return self.ready
     
     def start(self):
-        if self.cl:
+        if self.hwnd:
             try:
-                self.cl.start_record()
+                self.hwnd.start_record()
             except:
                 pass
 
     def stop(self):
-        if self.cl:
+        if self.hwnd:
             try:
-                self.cl.stop_record()
+                self.hwnd.stop_record()
             except:
                 pass
 
     def release(self):
-        if self.cl:
-            self.cl.base_client.ws.close()
-            self.cl=None
+        if self.hwnd:
+            self.hwnd.base_client.ws.close()
+            self.hwnd=None
 
 
 class Slave_Miniscope(Slave):
     def __init__(self, ip='localhost', port=20172):
         super().__init__()
-        self.cl = None
+        self.hwnd = None
         self.ip = ip
         self.port = port
 
@@ -111,53 +112,53 @@ class Slave_Miniscope(Slave):
             log_slave('Found Slave_Miniscope.')
         else:
             tcp_socket = None
-        self.cl = tcp_socket
+        self.hwnd = tcp_socket
         self.ready = tcp_socket is not None
         return self.ready
 
     def start(self):
         send_data_byte = "start_record".encode("utf-8")
-        if self.cl:
-            self.cl.send(send_data_byte)
+        if self.hwnd:
+            self.hwnd.send(send_data_byte)
 
     def stop(self):
         send_data_byte = "stop_record".encode("utf-8")
-        if self.cl:
-            self.cl.send(send_data_byte)
+        if self.hwnd:
+            self.hwnd.send(send_data_byte)
 
     def __read_response(self):
-        from_server_msg = self.cl.recv(1024)
+        from_server_msg = self.hwnd.recv(1024)
         print(from_server_msg.decode("utf-8"))
     
     def release(self):
-        if self.cl:
-            self.cl.close()
-            del self.cl
-            self.cl = None
+        if self.hwnd:
+            self.hwnd.close()
+            del self.hwnd
+            self.hwnd = None
 
 
-class Slave_USV(Slave):
+class Slave_USVOld(Slave):
     def __init__(self):
         super().__init__()
         self.titlename = "Avisoft-RECORDER USGH  (RECORDER.INI)"
-        self.cl = None
+        self.hwnd = None
         self.shell = win32com.client.Dispatch("WScript.Shell")
     
     def check_ready(self) -> bool:
         hwnd = win32gui.FindWindow(None, self.titlename)
         if hwnd==0:
-            self.cl = None
+            self.hwnd = None
         else:
-            self.cl = hwnd
+            self.hwnd = hwnd
             log_slave('Found USV.')
-        self.ready = self.cl is not None
+        self.ready = self.hwnd is not None
         return self.ready
 
     def start(self):
         self.shell.SendKeys('%')
-        log_slave('USV_Start', self.cl)
-        win32gui.ShowWindow(self.cl, win32con.SW_SHOWNORMAL)
-        win32gui.SetForegroundWindow(self.cl)
+        log_slave('USV_Start', self.hwnd)
+        win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(self.hwnd)
 
         win32api.keybd_event(win32con.VK_CONTROL,0,0,0)
         win32api.keybd_event(win32con.VK_F3,0,0,0)     # F3
@@ -165,8 +166,8 @@ class Slave_USV(Slave):
         win32api.keybd_event(win32con.VK_CONTROL,0,win32con.KEYEVENTF_KEYUP,0) 
 
         self.shell.SendKeys('%')
-        win32gui.ShowWindow(self.cl, win32con.SW_SHOWNORMAL)
-        win32gui.SetForegroundWindow(self.cl)
+        win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(self.hwnd)
 
         win32api.keybd_event(win32con.VK_CONTROL,0,0,0)
         win32api.keybd_event(win32con.VK_F3,0,0,0)     # F3
@@ -175,8 +176,8 @@ class Slave_USV(Slave):
         
     def stop(self):
         self.shell.SendKeys('%')
-        win32gui.ShowWindow(self.cl, win32con.SW_SHOWNORMAL)
-        win32gui.SetForegroundWindow(self.cl)
+        win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(self.hwnd)
 
         win32api.keybd_event(win32con.VK_CONTROL,0,0,0)
         win32api.keybd_event(win32con.VK_F5,0,0,0)     # F5
@@ -184,11 +185,32 @@ class Slave_USV(Slave):
         win32api.keybd_event(win32con.VK_CONTROL,0,win32con.KEYEVENTF_KEYUP,0) 
 
         self.shell.SendKeys('%')
-        win32gui.ShowWindow(self.cl, win32con.SW_SHOWNORMAL)
-        win32gui.SetForegroundWindow(self.cl)
+        win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(self.hwnd)
 
         win32api.keybd_event(win32con.VK_CONTROL,0,0,0)
         win32api.keybd_event(win32con.VK_F5,0,0,0)     # F5
         win32api.keybd_event(win32con.VK_F5,0,win32con.KEYEVENTF_KEYUP,0)  #释放按键
         win32api.keybd_event(win32con.VK_CONTROL,0,win32con.KEYEVENTF_KEYUP,0) 
-        log_slave('USV Stopped', self.cl)
+        log_slave('USV Stopped', self.hwnd)
+
+
+
+class Slave_USV(Slave_USVOld):
+    def start(self):
+        cmdstart = 'CMCDDE.EXE RECORDER main "start"'
+        os.popen(cmdstart) #非阻塞式
+
+        self.shell.SendKeys('%')
+        win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(self.hwnd)
+        log_slave('USV_Start')
+        
+    def stop(self):
+        cmdstop = 'CMCDDE.EXE RECORDER main "stop"'
+        os.popen(cmdstop)  #非阻塞式
+
+        self.shell.SendKeys('%')
+        win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(self.hwnd)
+        log_slave('USV Stopped')

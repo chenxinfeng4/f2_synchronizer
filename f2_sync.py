@@ -1,5 +1,5 @@
 # conda activate py310
-#!pyinstaller.exe --noconsole .\f2_sync.py -i .\F2.ico --add-data "F2.ico;F2_record.con;." --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
+# pyinstaller.exe --noconsole .\f2_sync.py -i .\F2.ico  --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
 # python D:\f2_sync_project\f2_sync.py
 import pystray
 from pystray import Menu as menu, MenuItem as item
@@ -28,6 +28,7 @@ countdown_timer_seconds=15*60+1 #15*60+1
 slave_dict = {'OBS 录像': [True, Slave_OBS()],
               'USV 超声': [True, Slave_USV()],
               '小显微镜': [True, Slave_Miniscope()],
+              '小显微镜2': [True, Slave_Miniscope(port=20173)],
               'ArControl': [True, Slave_Miniscope(port=20171)]}
 
 class MyMenuItem(item):
@@ -154,6 +155,8 @@ class SingletonManager:
                     self.on_clicked_countdown_timer,
                     checked=lambda item: self.countdown_timer_enable
                 ),
+                item('开始记录', lambda *args: self.switch_record_world(True)),
+                item('停止记录', lambda *args: self.switch_record_world(False)),
                 item_timeset,
                 item('退出', self.on_exit),
                 ))
@@ -188,6 +191,7 @@ class SingletonManager:
             # self.on_notify('记录已经结束', '结束') 
 
     def new_countdown_timer(self):
+        log_timer(f'create a new timer {countdown_timer_seconds}')
         self.countdown_timer = threading.Timer(countdown_timer_seconds, self.do_countdown_callback)
 
     def do_countdown_callback(self):
