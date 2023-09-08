@@ -21,6 +21,8 @@ import time
 from f2_logging import logprint
 from PyQt5.QtWidgets import QApplication, QInputDialog
 from filelock import Timeout, FileLock
+from wechat_push import WechatPush
+
 
 singleton_port = 20170
 socket_server_port = 20169
@@ -112,9 +114,13 @@ class SingletonManager:
             slave_dict[k][0] = v
         self.countdown_timer_enable = config_dict['启用倒计时']
         self.app_hotkey_enable = config_dict['启用socket server控制']
+        self.app_wechatpush_enable = config_dict['启用微信推送']
         self.app_socket_enable = config_dict['启用快捷键控制']
+        self.key_wechatpush = config_dict['微信推送密钥']
+        self.content_wechatpush = config_dict['微信推送内容']
         global countdown_timer_seconds
         countdown_timer_seconds = config_dict['倒计时秒数']  # 单位是秒
+        self.config_dict = config_dict
 
         # 1. create socket server
         # s_server = socketserver.TCPServer(('0.0.0.0', socket_server_port), MyTCPHandler)
@@ -157,20 +163,25 @@ class SingletonManager:
                     checked=lambda item: self.countdown_timer_enable
                 ),
                 item_timeset,
+                item('启用微信推送',
+                    self.on_clicked_wechatpush,
+                    checked=lambda item: self.app_wechatpush_enable
+                ),
                 item('开始记录 (Ctrl+F2)', lambda *args: self.switch_record_world(True)),
                 item('停止记录 (Ctrl+F4)', lambda *args: self.switch_record_world(False)),
                 item('退出', self.on_exit),
                 ))
 
     def on_save_config(self):
-        config_dict = {
+        self.config_dict.update({
             "选择同步设备":{k:v[0] for (k,v) in slave_dict.items()},
             '启用倒计时': self.countdown_timer_enable,
             '启用socket server控制': self.app_socket_enable,
             '启用快捷键控制': self.app_hotkey_enable,
+            '启用微信推送': self.app_wechatpush_enable,
             '倒计时秒数': countdown_timer_seconds
-        }
-        save_config(config_dict)
+        })
+        save_config(self.config_dict)
 
     def switch_record_world(self, switch, 
                         enablecountdowntimer=True):
@@ -192,6 +203,14 @@ class SingletonManager:
             # self.on_notify('开始记录啦', '开始')
         else:
             self.icon.icon = self.image
+            if self.app_wechatpush_enable:
+                try:
+                    res = WechatPush(*(self.key_wechatpush)).send_text(self.content_wechatpush)
+                    self.app_wechatpush_enable = res['errcode'] == 0
+                except:
+                    self.app_wechatpush_enable = False
+                if not self.app_wechatpush_enable:
+                    self.on_notify('微信推送失败', '微信推送失败')
             # self.on_notify('记录已经结束', '结束') 
 
     def new_countdown_timer(self):
@@ -256,6 +275,9 @@ class SingletonManager:
         # global app_enable
         self.app_hotkey_enable = not item.checked
         self.enable_hotkeys(self.app_hotkey_enable)
+    
+    def on_clicked_wechatpush(self, icon, item):
+        self.app_wechatpush_enable = not self.app_wechatpush_enable
 
     def on_clicked_socket(self, icon, item):
         # global app_enable

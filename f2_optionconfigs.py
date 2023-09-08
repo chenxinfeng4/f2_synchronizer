@@ -12,7 +12,14 @@ default_config = {
     "启用快捷键控制": True,
     "启用socket server控制": True,
     "启用倒计时": True,
-    "倒计时秒数": 15*60+1
+    "倒计时秒数": 15*60+1,
+    "启用微信推送": True,
+    "微信推送密钥": [
+        "<corp_id>", #corp_id
+        "<secret>", #secret key
+        "<agent_id>" #agent_id
+    ],
+    "微信推送内容": "[行为间2] 结束录制",
 }
 
 filenames = [osp.join(osp.dirname(__file__), '.f2_config'), #high priority first
