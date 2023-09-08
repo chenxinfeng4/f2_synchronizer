@@ -21,7 +21,7 @@ class Slave(ABC):
 
     @abstractmethod    
     def check_ready(self)->bool:
-        return True
+        return self.ready
     
     @abstractmethod
     def start(self)->None:
@@ -32,7 +32,8 @@ class Slave(ABC):
         pass
 
     def switch(self, switch:bool):
-        mode = (self.check_ready(), switch)
+        # check ready is pre-requisite
+        mode = (self.ready, switch)
         if mode == (True, True):
             log_slave(self.__class__, "found and start")
             self.start()
@@ -103,13 +104,15 @@ class Slave_Miniscope(Slave):
         self.hwnd = None
         self.ip = ip
         self.port = port
+        self.send_data_byte = "start_record".encode("utf-8")
+        self.send_data_byte = "stop_record".encode("utf-8")
 
     def check_ready(self) -> bool:
         self.release()
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_socket.settimeout(0.1)
         if tcp_socket.connect_ex((self.ip, self.port)) == 0: # connection successful
-            log_slave('Found Slave_Miniscope.')
+            log_slave('Found Miniscope.')
         else:
             tcp_socket = None
         self.hwnd = tcp_socket
@@ -117,14 +120,12 @@ class Slave_Miniscope(Slave):
         return self.ready
 
     def start(self):
-        send_data_byte = "start_record".encode("utf-8")
         if self.hwnd:
-            self.hwnd.send(send_data_byte)
+            self.hwnd.send(self.send_data_byte)
 
     def stop(self):
-        send_data_byte = "stop_record".encode("utf-8")
         if self.hwnd:
-            self.hwnd.send(send_data_byte)
+            self.hwnd.send(self.send_data_byte)
 
     def __read_response(self):
         from_server_msg = self.hwnd.recv(1024)

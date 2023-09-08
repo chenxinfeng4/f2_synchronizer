@@ -7,3 +7,4 @@ pystray>=0.19.4
 global-hotkeys>=0.0.4
 Pillow>=5.4.1
 easygui>=0.98.1
+portalocker

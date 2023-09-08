@@ -1,6 +1,11 @@
 # conda activate py310
-# pyinstaller.exe -y --noconsole .\f2_sync.py -i .\F2.ico --add-data "./*.ico;." --hidden-import win32api --hidden-import  pythonwin --hidden-import win32com --hidden-import win32comext --hidden-import isapi
-# python D:\f2_sync_project\f2_sync.py
+"""
+pyinstaller.exe --noconsole ./f2_sync.py -i ./F2.ico --add-data "./*.ico;." \
+    --hidden-import win32api --hidden-import pythonwin --hidden-import win32com \
+    --hidden-import win32comext --hidden-import isapi --noconfirm
+
+python D:/f2_sync_project/f2_sync.py
+"""
 import pystray
 from pystray import Menu as menu, MenuItem as item
 from PIL import Image
@@ -15,13 +20,10 @@ from f2_optionconfigs import load_config, save_config
 import time
 from f2_logging import logprint
 from PyQt5.QtWidgets import QApplication, QInputDialog
-
-
-is_recording = True
+from filelock import Timeout, FileLock
 
 singleton_port = 20170
 socket_server_port = 20169
-app_enable=1
 
 countdown_timer_seconds=15*60+1 #15*60+1
 
@@ -114,7 +116,6 @@ class SingletonManager:
         global countdown_timer_seconds
         countdown_timer_seconds = config_dict['倒计时秒数']  # 单位是秒
 
-
         # 1. create socket server
         # s_server = socketserver.TCPServer(('0.0.0.0', socket_server_port), MyTCPHandler)
         s_server = ThreadedTCPServer(('0.0.0.0', socket_server_port), MyTCPHandler)
@@ -179,7 +180,10 @@ class SingletonManager:
             self.do_countdown(switch=switch)
 
         log_manager('Switch', switch)
+        threads_check = [threading.Thread(target=obj.check_ready) for obj in world]
         threads = [threading.Thread(target=obj.switch, args=(switch,)) for obj in world]
+        _ = [t.start() for t in threads_check]
+        _ = [t.join() for t in threads_check]
         _ = [t.start() for t in threads]
         _ = [t.join() for t in threads]
 
@@ -334,7 +338,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 
 if __name__=='__main__':
-    res, sockethandle = acquire_singleton(singleton_port)
+    res = acquire_singleton(singleton_port)
     if not res:
         print('In singleton program mode')
         os._exit(1)
