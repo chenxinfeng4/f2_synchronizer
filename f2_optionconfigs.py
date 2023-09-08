@@ -19,6 +19,10 @@ default_config = {
         "<secret>", #secret key
         "<agent_id>" #agent_id
     ],
+    "微信推送中继代理服务器":{
+        "http_proxy": None,
+        "https_proxy": None
+    },
     "微信推送内容": "[行为间2] 结束录制",
 }
 
