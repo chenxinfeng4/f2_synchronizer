@@ -104,8 +104,8 @@ class Slave_Miniscope(Slave):
         self.hwnd = None
         self.ip = ip
         self.port = port
-        self.send_data_byte = "start_record".encode("utf-8")
-        self.send_data_byte = "stop_record".encode("utf-8")
+        self.send_start_byte = "start_record".encode("utf-8")
+        self.send_stop_byte = "stop_record".encode("utf-8")
 
     def check_ready(self) -> bool:
         self.release()
@@ -121,11 +121,11 @@ class Slave_Miniscope(Slave):
 
     def start(self):
         if self.hwnd:
-            self.hwnd.send(self.send_data_byte)
+            self.hwnd.send(self.send_start_byte)
 
     def stop(self):
         if self.hwnd:
-            self.hwnd.send(self.send_data_byte)
+            self.hwnd.send(self.send_stop_byte)
 
     def __read_response(self):
         from_server_msg = self.hwnd.recv(1024)
