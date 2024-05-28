@@ -9,6 +9,9 @@ import win32com
 import win32com.client
 from f2_logging import logprint
 import os
+from datetime import datetime
+import subprocess
+
 
 pythoncom.CoInitialize()
 def log_slave(*args, **kargs):
@@ -21,7 +24,7 @@ class Slave(ABC):
 
     @abstractmethod    
     def check_ready(self)->bool:
-        return self.ready
+        return True
     
     @abstractmethod
     def start(self)->None:
@@ -32,8 +35,7 @@ class Slave(ABC):
         pass
 
     def switch(self, switch:bool):
-        # check ready is pre-requisite
-        mode = (self.ready, switch)
+        mode = (self.check_ready(), switch)
         if mode == (True, True):
             log_slave(self.__class__, "found and start")
             self.start()
@@ -104,15 +106,13 @@ class Slave_Miniscope(Slave):
         self.hwnd = None
         self.ip = ip
         self.port = port
-        self.send_start_byte = "start_record".encode("utf-8")
-        self.send_stop_byte = "stop_record".encode("utf-8")
 
     def check_ready(self) -> bool:
         self.release()
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_socket.settimeout(0.1)
         if tcp_socket.connect_ex((self.ip, self.port)) == 0: # connection successful
-            log_slave('Found Miniscope.')
+            log_slave('Found Slave_Miniscope.')
         else:
             tcp_socket = None
         self.hwnd = tcp_socket
@@ -120,12 +120,14 @@ class Slave_Miniscope(Slave):
         return self.ready
 
     def start(self):
+        send_data_byte = "start_record".encode("utf-8")
         if self.hwnd:
-            self.hwnd.send(self.send_start_byte)
+            self.hwnd.send(send_data_byte)
 
     def stop(self):
+        send_data_byte = "stop_record".encode("utf-8")
         if self.hwnd:
-            self.hwnd.send(self.send_stop_byte)
+            self.hwnd.send(send_data_byte)
 
     def __read_response(self):
         from_server_msg = self.hwnd.recv(1024)
@@ -215,3 +217,37 @@ class Slave_USV(Slave_USVOld):
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNORMAL)
         win32gui.SetForegroundWindow(self.hwnd)
         log_slave('USV Stopped')
+
+
+class Slave_RTSP_CAM(Slave):
+    def __init__(self, rtsp_list):
+        super().__init__()
+        self.rtsp_list = rtsp_list
+        self.outdir = 'E:/rtsp_cam'
+        os.makedirs(self.outdir, exist_ok=True)
+        self.process_l = []
+
+    def check_ready(self) -> bool:
+        self.release()
+        return True
+    
+    def start(self):
+        now = datetime.now()
+        formatted_time = now.strftime('%Y-%m-%d_%H:%M:%S')
+        cmd_l = []
+        for i, rtsp in enumerate(self.rtsp_list):
+            filename = os.path.join(self.outdir, f'{formatted_time}_cam{i+1}.mp4')
+            cmd_l.append(f'ffmpeg -i {rtsp} -c copy {filename}')
+        
+        self.process_l = []
+        for cmd in cmd_l:
+            self.process_l.append(subprocess.Popen(cmd, shell=True))
+
+    def stop(self):
+        for p in self.process_l:
+            p.terminate()
+        self.process_l = []
+
+    def release(self):
+        if len(self.process_l):
+            self.stop()

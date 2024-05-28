@@ -13,7 +13,7 @@ default_config = {
     "启用socket server控制": True,
     "启用倒计时": True,
     "倒计时秒数": 15*60+1,
-    "启用微信推送": True,
+    "启用微信推送": False,
     "微信推送密钥": [
         "<corp_id>", #corp_id
         "<secret>", #secret key

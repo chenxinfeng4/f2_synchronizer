@@ -15,7 +15,7 @@ from global_hotkeys import register_hotkeys, start_checking_hotkeys, stop_checki
 import socketserver
 import threading
 import win32ui
-from f2_slaves import Slave_OBS, Slave_Miniscope, Slave_USV
+from f2_slaves import Slave_OBS, Slave_Miniscope, Slave_USV, Slave_RTSP_CAM
 from f2_optionconfigs import load_config, save_config
 import time
 from f2_logging import logprint
@@ -28,12 +28,16 @@ singleton_port = 20170
 socket_server_port = 20169
 
 countdown_timer_seconds=15*60+1 #15*60+1
+config_dict = load_config()
 
+RTSP_l = config_dict.get('RTSP海康', [])
 slave_dict = {'OBS 录像': [True, Slave_OBS()],
               'USV 超声': [True, Slave_USV()],
               '小显微镜': [True, Slave_Miniscope()],
               '小显微镜2': [True, Slave_Miniscope(port=20173)],
-              'ArControl': [True, Slave_Miniscope(port=20171)]}
+              'ArControl': [True, Slave_Miniscope(port=20171)],
+              'EPStudio': [False, Slave_Miniscope(ip='10.50.31.76', port=20172)],
+              'RTSP海康': [False, Slave_RTSP_CAM(RTSP_l)]}
 
 class MyMenuItem(item):
     def __init__(self, title, callback, checked:bool=False):
@@ -109,7 +113,7 @@ class SingletonManager:
 
     def _init(self):
         # 0. load config
-        config_dict = load_config()
+        
         for k, v in config_dict['选择同步设备'].items():
             slave_dict[k][0] = v
         self.countdown_timer_enable = config_dict['启用倒计时']
