@@ -99,20 +99,21 @@ class Slave_OBS(Slave):
 
 
 class Slave_Miniscope(Slave):
-    def __init__(self, ip='localhost', port=20172):
+    def __init__(self, ip='localhost', port=20172, label='Miniscope'):
         super().__init__()
         self.hwnd = None
         self.ip = ip
         self.port = port
         self.send_start_byte = "start_record".encode("utf-8")
         self.send_stop_byte = "stop_record".encode("utf-8")
+        self.device_name = label
 
     def check_ready(self) -> bool:
         self.release()
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_socket.settimeout(0.1)
         if tcp_socket.connect_ex((self.ip, self.port)) == 0: # connection successful
-            log_slave('Found Miniscope.')
+            log_slave(f'Found {self.device_name}.')
         else:
             tcp_socket = None
         self.hwnd = tcp_socket
@@ -137,6 +138,11 @@ class Slave_Miniscope(Slave):
             del self.hwnd
             self.hwnd = None
 
+
+class Slave_EPStudio(Slave_Miniscope):
+    def __init__(self, ip='10.50.36.170', port=20172, label='EPStudio'):
+        super().__init__(ip=ip, port=port, label=label)
+        
 
 class Slave_USVOld(Slave):
     def __init__(self):

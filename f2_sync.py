@@ -15,14 +15,15 @@ from global_hotkeys import register_hotkeys, start_checking_hotkeys, stop_checki
 import socketserver
 import threading
 import win32ui
-from f2_slaves import Slave_OBS, Slave_Miniscope, Slave_USV
+from f2_slaves import Slave_OBS, Slave_Miniscope, Slave_USV, Slave_EPStudio
 from f2_optionconfigs import load_config, save_config
 import time
 from f2_logging import logprint
 from PyQt5.QtWidgets import QApplication, QInputDialog
 from wechat_push import WechatPush
 
-
+os.environ['http_proxy'] = "http://chenxinfeng.com:3128"
+os.environ['https_proxy'] = "http://chenxinfeng.com:3128"
 
 singleton_port = 20170
 socket_server_port = 20169
@@ -33,7 +34,11 @@ slave_dict = {'OBS 录像': [True, Slave_OBS()],
               'USV 超声': [True, Slave_USV()],
               '小显微镜': [True, Slave_Miniscope()],
               '小显微镜2': [True, Slave_Miniscope(port=20173)],
-              'ArControl': [True, Slave_Miniscope(port=20171)]}
+              'ArControl': [True, Slave_Miniscope(port=20171, label='ArControl')],
+              'EPStudio_Laptop': [False, Slave_Miniscope(ip='10.50.36.236', port=20172, label='EPStudio_Laptop')],
+              'EPStudio_Host':[False, Slave_Miniscope(ip='10.50.37.137', port=20174, label='EPStudio_Host')],
+              'Arduino_TTL_tagger': [False, Slave_Miniscope(port=20175, label='Arduino_TTL_tagger')]}
+
 
 class MyMenuItem(item):
     def __init__(self, title, callback, checked:bool=False):
@@ -111,6 +116,7 @@ class SingletonManager:
         # 0. load config
         config_dict = load_config()
         for k, v in config_dict['选择同步设备'].items():
+            if k not in slave_dict: continue
             slave_dict[k][0] = v
         self.countdown_timer_enable = config_dict['启用倒计时']
         self.app_hotkey_enable = config_dict['启用socket server控制']
@@ -118,12 +124,6 @@ class SingletonManager:
         self.app_socket_enable = config_dict['启用快捷键控制']
         self.key_wechatpush = config_dict['微信推送密钥']
         self.content_wechatpush = config_dict['微信推送内容']
-        if config_dict["微信推送中继代理服务器"]:
-            proxys = config_dict["微信推送中继代理服务器"]
-            if proxys['http_proxy'] is not None and proxys['http_proxy'] is not None:
-                os.environ["http_proxy"] = proxys['http_proxy']
-                os.environ["https_proxy"] = proxys['https_proxy']
-
         global countdown_timer_seconds
         countdown_timer_seconds = config_dict['倒计时秒数']  # 单位是秒
         self.config_dict = config_dict
@@ -143,10 +143,6 @@ class SingletonManager:
         register_hotkeys(bindings)
         self.enable_hotkeys(self.app_hotkey_enable)
         print("Ready. \n1. [Ctrl+F2] to start. \n2. [Ctrl+F4] to stop.")
-
-        # 2. wx push
-        pusher = WechatPush(*(config_dict['微信推送密钥']))
-        self.pusher_fun = lambda : pusher.send_text(config_dict['微信推送内容'])
 
         # 3. rigister icon.
         devices_items = [MyMenuItem(k, self.on_device_enable, checked=v[0]) for (k,v) in slave_dict.items()]
@@ -215,15 +211,12 @@ class SingletonManager:
             self.icon.icon = self.image
             if self.app_wechatpush_enable:
                 try:
-                    res = self.pusher_fun()
-                    errmsg = res['errmsg']
+                    res = WechatPush(*(self.key_wechatpush)).send_text(self.content_wechatpush)
                     self.app_wechatpush_enable = res['errcode'] == 0
                 except:
                     self.app_wechatpush_enable = False
-                    errmsg = res['Configure error']
                 if not self.app_wechatpush_enable:
-                    print( errmsg)
-                    # self.on_notify('微信推送失败', errmsg)
+                    self.on_notify('微信推送失败', '微信推送失败')
             # self.on_notify('记录已经结束', '结束') 
 
     def new_countdown_timer(self):
