@@ -11,6 +11,7 @@ from f2_logging import logprint
 import os
 from datetime import datetime
 import subprocess
+import time
 
 
 pythoncom.CoInitialize()
@@ -54,6 +55,64 @@ class Slave(ABC):
 
     def release(self):
         pass
+
+
+class Slave_OBS_tagger(Slave):
+    def __init__(self, ip='localhost', port=4455):
+        super().__init__()
+        self.ip = ip
+        self.port = port
+        self.hwnd = None
+    
+    def check_ready(self) -> bool:
+        self.tbg = time.time()
+        if self.hwnd is None or not self.hwnd.base_client.ws.connected:
+            try:
+                cl = obs.ReqClient(host=self.ip, port=self.port)
+                resp = cl.send("GetInputList", {"inputKind": "text_gdiplus_v2"})
+                inputName_l = [d['inputName'] for d in resp.inputs]
+                if 'TextFrame' not in inputName_l:
+                    sceneName = cl.get_current_program_scene().current_program_scene_name
+                    cl.send("CreateInput", {"sceneName":sceneName, 
+                                            "inputName": "TextFrame",
+                                            "inputKind": "text_gdiplus_v2"})
+                self.hwnd = cl
+            except Exception:
+                self.hwnd = None
+            self.ready = self.hwnd is not None
+        return self.ready
+
+    def start(self):
+        if self.hwnd:
+            try:
+                self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
+                    'align': 'right', 'bk_opacity': 100,'color': '#FF0000', 
+                    'text': '000', 'bk_color': 4278190335, 
+                    'font': {'face': 'Courier New', 'flags': 0, 'size': 60, 'style': 'Regular'}}})
+                while True:
+                    tpass = int((time.time() - self.tbg) * 1000)
+                    if tpass > 999: break
+                    text = f'{tpass:03d}'
+                    self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
+                        'text': text}})
+                    time.sleep(0.01)
+                self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
+                        'bk_color': 4278233685, 'text': '   '}})
+            except:
+                self.hwnd = None
+    
+    def stop(self):
+        if self.hwnd:
+            try:
+                self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
+                        'bk_color': 4278190080, 'text': '   '}})
+            except:
+                self.hwnd = None
+
+    def release(self):
+        if self.hwnd:
+            self.hwnd.base_client.ws.close()
+            self.hwnd=None
 
 
 class Slave_OBS(Slave):

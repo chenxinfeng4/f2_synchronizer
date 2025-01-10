@@ -30,7 +30,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
     def msgfilter(self, msg:str):
         callbacks = {'start_record': lambda:serial_com.send_message("b"),
-                    'stop_record': lambda: serial_com.send_message("e")}
+                    'stop_record': lambda: serial_com.send_message("c")}
         for callkey, callfun in callbacks.items():
             if callkey in msg:
                 print('执行命令')
