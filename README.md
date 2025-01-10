@@ -77,9 +77,16 @@ $ python f2_sync.py
 基于软件的同步方案，受到操作系统状态和设备的性质影响。不同的设备启动的“热身时间”不一致，越繁重的设备，启动越慢。通常 ArControl/Arduino 的启动速度最快，在20 ms 以内；OBS 和 UCLA小显微镜启动最慢，在200ms 左右。设备多次启动，variation通常在 ±50 ms 以内。
 
 <p align="center">
-  <img src="images/performance.jpg" alt="image" width="400"/>
+  <img src="images/performance.jpg" alt="image" width="300"/>
 </p>
 
 
+## 为何同步助手能够调用多个设备
+| 设备 | 驱动设备运行的Python模块 |
+| --- | --- |
+| 视频来自OBS Studio. 使用websocket开启OBS记录。 | >>> import obsws_python as obs <br> >>> PORT = 4455 <br/>>>> cl = obs.ReqClient('localhost', PORT) <br/>>>> cl.start_record() |
+| 超声音频来自Avisoft Recorder。使用模拟窗口按下快捷键，开启记录。 | >>> import win32gui, win32api as api <br/>>>> from win32con import * <br/>>>> t = "Avisoft-RECORDER USGH (RECORDER.INI)" <br/>>>> cl = win32gui.FindWindow(None, t) <br/>>>> win32gui.ShowWindow(cl, SW_SHOWNORMAL) <br/>>>> win32gui.SetForegroundWindow(cl) <br/>>>> api.keybd_event(VK_F3,0,0,0)   #F3 <br/>>>> api.keybd_event(VK_F3,0,KEYEVENTF_KEYUP,0) |
+| 光遗传刺激来自ArControl。使用socket通讯，开启软件工作 | >>> PORT = 20173 <br/>>>> from socket import * <br/>>>> cl = socket(AF_INET, SOCK_STREAM) <br/>>>> cl.connect_ex(('localhost', PORT)) <br/>>>> cl.send("start_record".encode("utf-8")) |
+| 小显微镜，无线电生理，Arduino_TTL同步。 | >>> PORT = 20171..20172..20175  # 其它代码与 ArControl 调用相同 |
 ## 快速实现自己的设备定义
 参考 `f2_slaves.py` 文件，`plugin_xxx/main.py`，实现自己的设备定义。通过仿造plugin 示例中 socket 后台编程的范式，实现目标设备的`start_record` 和 `stop_record` 两个函数。
