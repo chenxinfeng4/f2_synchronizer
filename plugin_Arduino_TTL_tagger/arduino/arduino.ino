@@ -7,6 +7,7 @@ void setup() {
 
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_PIN, OUTPUT);
+  pinMode(LED_PIN2, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 }
 
@@ -18,17 +19,17 @@ void do_action(char act_code) {
   else if(act_code == 'b'){
     Serial.println("Doing.");
     digitalWrite(LED_PIN2, HIGH);
-    delay(100);
+    delay(300);
     digitalWrite(LED_PIN2, LOW);
   }
   else if(act_code == 'c'){
     Serial.println("Doing.");
     digitalWrite(LED_PIN2, HIGH);
-    delay(50);
+    delay(100);
     digitalWrite(LED_PIN2, LOW);
-    delay(20);
+    delay(50);
     digitalWrite(LED_PIN2, HIGH);
-    delay(70);
+    delay(100);
     digitalWrite(LED_PIN2, LOW);
   }
   else if(act_code == '\r' || act_code == '\n'){
