@@ -13,10 +13,10 @@
 |                     设备                     | 功能                                                         |
 | :------------------------------------------: | ------------------------------------------------------------ |
 |  ![logo](images/OBSStudio_logo.jpg)OBS 录像  | 利用麦克风，录制相机和麦克风的视频                           |
-|   ![logo](images/AVISoft_logo.jpg)USV超声    | 利用 [AVISoft-Bioacoustics]((https://avisoft.com/price-list-ordering-informatio n/)) 录制高频声音 |
+|   ![logo](images/AVISoft_logo.jpg)USV超声    | 利用 [AVISoft-Bioacoustics](https://avisoft.com/price-list-ordering-informatio n/) 录制高频声音 |
 | ![logo](images/ArControl_logo.jpg)ArControl  | 检测和控制动物行为训练，如Go/No-GO, 舔水，光遗传等           |
 |   ![logo](images/Arduino_logo.jpg)Arduino    | 单片机用于给予 TTL 同步刺激                                  |
-| ![logo](images/rtspCam_log.jpg)网线监控相机  | RTSP 协议的监控相机（海康威视）， 多路高清视频录制。         |
+| ![logo](images/rtspCam_log.jpg)监控相机  | RTSP 协议的网线监控相机（海康威视）， 多路高清视频录制。         |
 | ![logo](images/MiniscopeV4_logo.jpg)小显微镜 | [UCLA miniscope V4](https://open-ephys.org/miniscope-v4/miniscope-v4) 显微成像。 |
 | ![logo](images/EPHYS_STD_logo.jpg)无线电生理 | [宁矩科技](http://www.neuramatrix.com.cn/) STD1.0 无线多通道LFP采集，EPStudio |
 | ![logo](images/Photometry_logo.jpg)光纤记录  | 光纤钙信号、探针信号记录系统。实验室自定义代码。             |
@@ -54,7 +54,7 @@ $ python f2_sync.py
 ![image](images/OBSStudio_config.jpg)
 
 ### 2. USV超声
-需要开启 USV 时，需要将 `项目/bin/` 文件夹里的东西拷贝到Windows 搜索路径下（推荐 `C:\Windows\System32`）
+需要开启 USV 时，提前将 `项目/bin/` 文件夹里的东西拷贝到Windows 搜索路径下（推荐 `C:\Windows\System32`）
 
 ### 3. ArControl
 打开ArControl Recorder，点击激活 `菜单栏 > Tool > Socket`，获取端口号。默认为 `20171`，不可修改。同步助手通过ArControl的socket后台操控设备运行。
@@ -68,7 +68,9 @@ $ python f2_sync.py
 使用本人修改过的 UCLA Miniscope [记录软件](https://github.com/Aharoni-Lab/Miniscope-DAQ-QT-Software/pull/56)。打开 socket 后台。同步助手通过socket后台操控设备运行。
 
 ### 6. 宁矩科技无线电生理
-no publish yet.
+准备中
+
+
 
 
 
@@ -76,7 +78,7 @@ no publish yet.
 
 基于软件的同步方案，受到操作系统状态和设备的性质影响。不同的设备启动的“热身时间”不一致，越繁重的设备，启动越慢。通常 ArControl/Arduino 的启动速度最快，在20 ms 以内；OBS 和 UCLA小显微镜启动最慢，在200ms 左右。设备多次启动，variation通常在 ±50 ms 以内。
 
-![image](images\performance.jpg)
+![image](images/performance.jpg)
 
 
 
