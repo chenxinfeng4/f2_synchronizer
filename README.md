@@ -13,7 +13,7 @@
 |                     设备                     | 功能                                                         |
 | :------------------------------------------: | ------------------------------------------------------------ |
 |  ![logo](images/OBSStudio_logo.jpg)OBS 录像  | 利用麦克风，录制相机和麦克风的视频                           |
-|   ![logo](images/AVISoft_logo.jpg)USV超声    | 利用 [AVISoft-Bioacoustics](https://avisoft.com/price-list-ordering-informatio n/) 录制高频声音 |
+|   ![logo](images/AVISoft_logo.jpg)USV超声    | 利用 [AVISoft-Bioacoustics](https://avisoft.com/price-list-ordering-information/) 录制高频声音 |
 | ![logo](images/ArControl_logo.jpg)ArControl  | 检测和控制动物行为训练，如Go/No-GO, 舔水，光遗传等           |
 |   ![logo](images/Arduino_logo.jpg)Arduino    | 单片机用于给予 TTL 同步刺激                                  |
 | ![logo](images/rtspCam_log.jpg)监控相机  | RTSP 协议的网线监控相机（海康威视）， 多路高清视频录制。         |
@@ -50,8 +50,9 @@ $ python f2_sync.py
 ### 1. OBS 录像
 
 打开OBS Studio 软件，在`菜单栏 > Tools > obs-websocket Settings` 功能中，找到`Server Settings`，取消其中的 `Enable Authentication`。
-
-![image](images/OBSStudio_config.jpg)
+<p align="center">
+  <img src="images/OBSStudio_config.jpg" alt="image" width="600"/>
+</p>
 
 ### 2. USV超声
 需要开启 USV 时，提前将 `项目/bin/` 文件夹里的东西拷贝到Windows 搜索路径下（推荐 `C:\Windows\System32`）
@@ -61,27 +62,24 @@ $ python f2_sync.py
 
 ### 4. Arduino TTL tagger
 
-进入`项目/bin/plugin_Arduino_TTL_tagger/` 文件夹，将 `arduino/arduino.ino` 的源码烧录到Arduino板。然后运行 `plugin_Arduino_TTL_tagger/main.py`。同步助手在“开始”和“结束”采集时，会触发 Arduino板 `D12` 端口单次闪烁，或连续两次闪烁，作为 TTL 的 tag。
+进入`项目/plugin_Arduino_TTL_tagger/` 文件夹，将 `arduino/arduino.ino` 的源码烧录到Arduino板。然后运行 `plugin_Arduino_TTL_tagger/main.py`。同步助手在“开始”和“结束”采集时，会触发 Arduino板 `D12` 端口单次闪烁，或连续两次闪烁，作为 TTL 的 tag。
 
 ### 5. UCLA 小显微镜
 
 使用本人修改过的 UCLA Miniscope [记录软件](https://github.com/Aharoni-Lab/Miniscope-DAQ-QT-Software/pull/56)。打开 socket 后台。同步助手通过socket后台操控设备运行。
 
 ### 6. 宁矩科技无线电生理
-准备中
-
-
-
+进入`项目/plugin_epstudio_ephys` 文件夹，运行 `main.py`。同步助手通过socket后台操控设备运行。需要向宁矩科技购买设备，并安装 `epstudio_sdk python`。
 
 
 ## 同步的时间精度
 
 基于软件的同步方案，受到操作系统状态和设备的性质影响。不同的设备启动的“热身时间”不一致，越繁重的设备，启动越慢。通常 ArControl/Arduino 的启动速度最快，在20 ms 以内；OBS 和 UCLA小显微镜启动最慢，在200ms 左右。设备多次启动，variation通常在 ±50 ms 以内。
 
-![image](images/performance.jpg)
-
+<p align="center">
+  <img src="images/performance.jpg" alt="image" width="400"/>
+</p>
 
 
 ## 快速实现自己的设备定义
-
-准备中。
+参考 `f2_slaves.py` 文件，`plugin_xxx/main.py`，实现自己的设备定义。通过仿造plugin 示例中 socket 后台编程的范式，实现目标设备的`start_record` 和 `stop_record` 两个函数。

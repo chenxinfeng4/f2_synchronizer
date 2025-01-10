@@ -167,7 +167,7 @@ class SingletonManager:
                     self.on_clicked_socket,
                     checked=lambda item: self.app_socket_enable
                 ),
-                item('启用倒计时',
+                item('启用倒计时停止记录',
                     self.on_clicked_countdown_timer,
                     checked=lambda item: self.countdown_timer_enable
                 ),
