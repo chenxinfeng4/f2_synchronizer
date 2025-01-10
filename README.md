@@ -75,18 +75,21 @@ $ python f2_sync.py
 ## 同步的时间精度
 
 基于软件的同步方案，受到操作系统状态和设备的性质影响。不同的设备启动的“热身时间”不一致，越繁重的设备，启动越慢。通常 ArControl/Arduino 的启动速度最快，在20 ms 以内；OBS 和 UCLA小显微镜启动最慢，在200ms 左右。设备多次启动，variation通常在 ±50 ms 以内。
+<br>在一些对时间精度要求较高的实验中（<50ms），还是需要采用硬件同步方案。或者利用本同步助手大致同步，缩小范围，然后通过硬件同步器精确同步。
 
 <p align="center">
   <img src="images/performance.jpg" alt="image" width="300"/>
 </p>
 
 
-## 为何同步助手能够调用多个设备
+## 同步助手软件调用多个设备的方式
+同步器根据设备记录软件的特性差异，设定了不同的函数模块进行控制。OBS支持websocket控制台，因此可以通过Python访问websocket来控制OBS的开启或结束记录；对于开源的ArControl软件和Miniscope软件，本人升级了源码，为其添加了socket控制台；对于商业闭源的采集系统软件，则可以通过pywin32桌面自动化技术，模拟鼠标键盘操作采集软件的窗口。因此，同步器可以通过多样的途径操纵下游的记录软件，并且使用模块化的设计扩展和调整各个设备。这种方法不仅提高了同步的灵活性和准确性，还减少了硬件设置的复杂性和事后分析的工作量。
 | 设备 | 驱动设备运行的Python模块 |
 | --- | --- |
 | 视频来自OBS Studio. 使用websocket开启OBS记录。 | >>> import obsws_python as obs <br> >>> PORT = 4455 <br/>>>> cl = obs.ReqClient('localhost', PORT) <br/>>>> cl.start_record() |
 | 超声音频来自Avisoft Recorder。使用模拟窗口按下快捷键，开启记录。 | >>> import win32gui, win32api as api <br/>>>> from win32con import * <br/>>>> t = "Avisoft-RECORDER USGH (RECORDER.INI)" <br/>>>> cl = win32gui.FindWindow(None, t) <br/>>>> win32gui.ShowWindow(cl, SW_SHOWNORMAL) <br/>>>> win32gui.SetForegroundWindow(cl) <br/>>>> api.keybd_event(VK_F3,0,0,0)   #F3 <br/>>>> api.keybd_event(VK_F3,0,KEYEVENTF_KEYUP,0) |
 | 光遗传刺激来自ArControl。使用socket通讯，开启软件工作 | >>> PORT = 20173 <br/>>>> from socket import * <br/>>>> cl = socket(AF_INET, SOCK_STREAM) <br/>>>> cl.connect_ex(('localhost', PORT)) <br/>>>> cl.send("start_record".encode("utf-8")) |
 | 小显微镜，无线电生理，Arduino_TTL同步。 | >>> PORT = 20171..20172..20175  # 其它代码与 ArControl 调用相同 |
+
 ## 快速实现自己的设备定义
 参考 `f2_slaves.py` 文件，`plugin_xxx/main.py`，实现自己的设备定义。通过仿造plugin 示例中 socket 后台编程的范式，实现目标设备的`start_record` 和 `stop_record` 两个函数。
