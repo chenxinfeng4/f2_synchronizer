@@ -71,15 +71,25 @@ class Slave_OBS_tagger(Slave):
                 cl = obs.ReqClient(host=self.ip, port=self.port)
                 resp = cl.send("GetInputList", {"inputKind": "text_gdiplus_v2"})
                 inputName_l = [d['inputName'] for d in resp.inputs]
+                sceneName = cl.get_current_program_scene().current_program_scene_name
+                print('sceneName', sceneName)
                 if 'TextFrame' not in inputName_l:
-                    sceneName = cl.get_current_program_scene().current_program_scene_name
                     cl.send("CreateInput", {"sceneName":sceneName, 
                                             "inputName": "TextFrame",
                                             "inputKind": "text_gdiplus_v2"})
+                resp = cl.send("GetSceneItemId", {"sceneName":sceneName, 
+                                                "sourceName": "TextFrame"})
+                self.scene_item_id = resp.scene_item_id
+                self.sceneName = sceneName
                 self.hwnd = cl
             except Exception:
                 self.hwnd = None
             self.ready = self.hwnd is not None
+        else:
+            self.sceneName = self.hwnd.get_current_program_scene().current_program_scene_name
+            resp = self.hwnd.send("GetSceneItemId", {"sceneName": self.sceneName, 
+                                              "sourceName": "TextFrame"})
+            self.scene_item_id = resp.scene_item_id
         return self.ready
 
     def start(self):
@@ -89,6 +99,9 @@ class Slave_OBS_tagger(Slave):
                     'align': 'right', 'bk_opacity': 100,'color': '#FF0000', 
                     'text': '000', 'bk_color': 4278190335, 
                     'font': {'face': 'Courier New', 'flags': 0, 'size': 60, 'style': 'Regular'}}})
+                self.hwnd.send("SetSceneItemEnabled", {"sceneName":self.sceneName, 
+                                                       "sceneItemId": self.scene_item_id, 
+                                                       "sceneItemEnabled": True})
                 while True:
                     tpass = int((time.time() - self.tbg) * 1000)
                     if tpass > 999: break
@@ -96,23 +109,24 @@ class Slave_OBS_tagger(Slave):
                     self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
                         'text': text}})
                     time.sleep(0.01)
-                self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
-                        'bk_color': 4278233685, 'text': '   '}})
+                # self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
+                #         'bk_color': 4278233685, 'text': '   '}})
+                self.hwnd.send("SetSceneItemEnabled", {"sceneName":self.sceneName, 
+                                                       "sceneItemId": self.scene_item_id,
+                                                       "sceneItemEnabled": False})
             except:
                 self.hwnd = None
     
     def stop(self):
         if self.hwnd:
             try:
-                self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
-                        'bk_color': 4278190080, 'text': '   '}})
+                # self.hwnd.send("SetInputSettings", {"inputName": "TextFrame", "inputSettings": {
+                #         'bk_color': 4278190080, 'text': '   '}})
+                self.hwnd.send("SetSceneItemEnabled", {"sceneName":self.sceneName, 
+                                        "sceneItemId": self.scene_item_id,
+                                        "sceneItemEnabled": False})
             except:
                 self.hwnd = None
-
-    def release(self):
-        if self.hwnd:
-            self.hwnd.base_client.ws.close()
-            self.hwnd=None
 
 
 class Slave_OBS(Slave):

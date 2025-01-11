@@ -33,10 +33,10 @@ config_dict = load_config()
 
 RTSP_l = config_dict.get('RTSP海康', [])
 slave_dict = {'OBS 录像': [True, Slave_OBS()],
+              'OBS 录像-时间戳': [True, Slave_OBS_tagger()],
               'USV 超声': [True, Slave_USV()],
               '小显微镜': [True, Slave_Miniscope()],
               '小显微镜2': [True, Slave_Miniscope(port=20173)],
-              'Slave_OBS_tagger': [True, Slave_OBS_tagger()],
               'ArControl': [True, Slave_Miniscope(port=20171, label='ArControl')],
               'EPStudio_Laptop': [False, Slave_Miniscope(ip='10.50.36.236', port=20172, label='EPStudio_Laptop')],
               'EPStudio_Host':[False, Slave_Miniscope(ip='10.50.37.137', port=20174, label='EPStudio_Host')],
