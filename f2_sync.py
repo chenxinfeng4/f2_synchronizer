@@ -18,7 +18,7 @@ import win32ui
 from f2_slaves import Slave_OBS, Slave_OBS_tagger, Slave_Miniscope, Slave_USV, Slave_RTSP_CAM
 from f2_optionconfigs import load_config, save_config
 import time
-from f2_logging import logprint
+from f2_logging import logprint, logprint2
 from PyQt5.QtWidgets import QApplication, QInputDialog
 from wechat_push import WechatPush
 
@@ -244,6 +244,7 @@ class SingletonManager:
             self.countdown_timer.start()
             self.countdown_timer.used = True
             log_timer('Start')
+            logprint2('Start')
             tic()
         elif switch==False and countdown_timer_alive==True:
             self.countdown_timer.cancel()
